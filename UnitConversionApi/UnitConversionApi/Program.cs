@@ -1,44 +1,54 @@
+using UnitConversionApi.Api.Converters;
+using UnitConversionApi.Api.Services;
+using UnitConversionApi.Api.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddSingleton<IUnitConverter, LengthConverter>();
+builder.Services.AddSingleton<IUnitConverter, WeightConverter>();
+builder.Services.AddSingleton<IUnitConverter, TemperatureConverter>();
+
+builder.Services.AddSingleton<ConversionService>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+app.MapPost("/convert",
+    (
+        ConversionRequest request,
+        ConversionService service
+    ) =>
+    {
+        try
+        {
+            var result = service.Convert(
+                request.Category,
+                request.Value,
+                request.FromUnit,
+                request.ToUnit);
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+            return Results.Ok(
+                new ConversionResponse
+                {
+                    OriginalValue = request.Value,
+                    FromUnit = request.FromUnit,
+                    ToUnit = request.ToUnit,
+                    ConvertedValue = Math.Round(result, 4)
+                });
+        }
+        catch (ArgumentException ex)
+        {
+            return Results.BadRequest(
+                new
+                {
+                    Error = ex.Message
+                });
+        }
+    });
 
 app.Run();
-
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
