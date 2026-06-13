@@ -177,7 +177,8 @@ Test scenarios covered:
 ### Clone Repository
 
 ```bash
-git clone https://github.com/PrashantKumar-0722/UnitConversion-Api.git
+git clone https://github.com/PrashantKumar-0722/Unit_Conversion-Api.git
+
 ```
 
 ### Navigate to Project
